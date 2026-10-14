@@ -257,7 +257,7 @@ footer{position:relative;padding:70px 0 32px;overflow:hidden}
 <footer>
   <div class="wrap">
     <div class="fw">word</div>
-    <div class="fr"><small>Every word is a coin · Solana · pump.fun · v12</small></div>
+    <div class="fr"><small>Every word is a coin · Solana · pump.fun · v13</small></div>
   </div>
 </footer>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -430,8 +430,8 @@ let web3P = null;
 const web3 = () => web3P || (web3P = new Promise((res, rej) => { const s = document.createElement("script"); s.src = "https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"; s.onload = () => res(window.solanaWeb3); s.onerror = () => rej(new Error("Couldn't load Solana library")); document.head.appendChild(s); }));
 async function api(path, body){
   const r = await fetch(CONFIG.API + path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
-  let j = {}; try { j = await r.json(); } catch {}
-  if (!r.ok) { const e = new Error(j.error || "Server error " + r.status); e.status = r.status; throw e; }
+  const txt = await r.text(); let j = {}; try { j = JSON.parse(txt); } catch {}
+  if (!r.ok) { const e = new Error(j.error || `Server error ${r.status}${txt && txt.length < 200 ? ": " + txt : ""}`); e.status = r.status; throw e; }
   return j;
 }
 async function launchCoin(v, signed){
