@@ -1,0 +1,582 @@
+<title>Word</title>
+<meta name="theme-color" content="#09090a">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fff200'/%3E%3Ctext x='32' y='47' font-family='Arial Black,Arial,sans-serif' font-weight='900' font-size='40' text-anchor='middle' fill='%2309090a'%3EW%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;700;800;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one giant word you type into, over a tunnel of claimed words. Then live claims, the taken wall, outline footer. */
+:root{
+  --bg:#09090a;--tx:#f4f4f0;--soft:#a3a39c;--mute:#5e5e58;--ln:rgba(255,255,255,.09);--ln2:rgba(255,255,255,.16);
+  --hi:#fff200;--hid:rgba(255,242,0,.14);--up:#4ef08a;--dn:#ff5a5a;
+  --f:'Inter Tight',ui-sans-serif,system-ui,sans-serif;--s:'Instrument Serif',Georgia,serif;--m:'JetBrains Mono',ui-monospace,monospace;
+  --ease:cubic-bezier(.2,.9,.2,1);--snap:cubic-bezier(.76,0,.24,1);
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--tx);overflow-x:hidden}
+body{font:16px/1.5 var(--f);-webkit-font-smoothing:antialiased}
+body.lock{overflow:hidden}
+button,input{font:inherit;color:inherit;background:none;border:0;outline:0}
+button,a{cursor:pointer}a{color:inherit;text-decoration:none}
+::selection{background:var(--hi);color:#000}
+:focus-visible{outline:2px solid var(--hi);outline-offset:3px;border-radius:6px}
+.grain{position:fixed;inset:0;pointer-events:none;z-index:90;opacity:.07;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.wrap{max-width:1320px;margin:0 auto;padding:0 32px}
+
+/* intro: four slots spin and lock into WORD, then wipe */
+#intro{position:fixed;inset:0;z-index:100;background:#000;display:grid;place-items:center;transition:clip-path 1s var(--snap);clip-path:inset(0 0 0 0)}
+#intro.out{clip-path:inset(0 0 100% 0)}
+.slots{display:flex;gap:.04em;font:900 clamp(80px,17vw,260px)/1 var(--f);letter-spacing:-.04em}
+.slot{width:.78em;height:1em;overflow:hidden;display:grid;place-items:center;color:var(--mute);transition:color .2s}
+.slot.lock{color:var(--tx)}
+.slot.lock:last-child{color:var(--hi)}
+.ibar{position:absolute;left:50%;bottom:16vh;transform:translateX(-50%);font:500 11px var(--m);letter-spacing:.3em;color:var(--mute);text-transform:uppercase}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;align-items:center;gap:12px;padding:22px 32px;padding-top:calc(22px + env(safe-area-inset-top,0px));transition:padding .4s,background .4s}
+nav.sc{padding-block:12px;background:rgba(9,9,10,.6);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.logo{display:flex;align-items:center;gap:10px;font:900 24px/1 var(--f);letter-spacing:-.05em}
+.logo i{width:30px;height:30px;border-radius:8px;background:var(--hi);color:#000;display:grid;place-items:center;font:900 19px var(--f);font-style:normal;letter-spacing:-.04em}
+.nr{margin-left:auto;display:flex;align-items:center;gap:10px}
+.cnt{font:500 12px var(--m);color:var(--soft);display:flex;align-items:center;gap:8px;margin-right:6px}
+.cnt b{color:var(--tx);font-weight:700}
+.cnt i{width:7px;height:7px;border-radius:50%;background:var(--hi);box-shadow:0 0 10px var(--hi);animation:pul 1.4s infinite}
+@keyframes pul{50%{opacity:.3}}
+.ca{display:flex;align-items:center;gap:10px;height:42px;padding:0 5px 0 15px;border-radius:999px;background:rgba(9,9,10,.45);backdrop-filter:blur(10px);box-shadow:inset 0 0 0 1px var(--ln2);font:500 12.5px var(--m);color:var(--soft)}
+.ca:hover{box-shadow:inset 0 0 0 1px var(--hi)}
+.ca b{color:var(--hi)}
+.ca .cp{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center}.ca .cp svg{width:14px;height:14px}
+.xb{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--tx);color:#000;transition:background .3s,transform .3s var(--ease);flex:none}
+.xb:hover{background:var(--hi);transform:rotate(-8deg) scale(1.06)}.xb svg{width:16px;height:16px}
+
+/* hero */
+.hero{position:relative;height:100vh;min-height:680px;overflow:hidden;display:grid;place-items:center}
+#tun{position:absolute;inset:0;width:100%;height:100%}
+.vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(60% 55% at 50% 50%,rgba(9,9,10,.82),rgba(9,9,10,.25) 70%,transparent),linear-gradient(0deg,var(--bg),transparent 25%)}
+.stage{position:relative;z-index:5;width:100%;text-align:center;padding:0 24px}
+.kick{font:500 12px var(--m);letter-spacing:.28em;text-transform:uppercase;color:var(--soft);opacity:0;transform:translateY(14px);transition:all .9s .2s var(--ease)}
+.kick b{color:var(--hi);font-weight:700}
+.wbox{position:relative;display:inline-block;max-width:100%;margin-top:14px}
+#hl{position:absolute;left:-.06em;right:-.06em;top:18%;bottom:10%;background:var(--hi);transform:scaleX(0) skewX(-6deg);transform-origin:left;transition:transform .55s var(--snap);z-index:0;border-radius:.06em}
+.mine #hl{transform:scaleX(1) skewX(-6deg)}
+#w{position:relative;z-index:1;display:block;width:min(1200px,92vw);text-align:center;font:900 160px/1 var(--f);letter-spacing:-.065em;color:var(--tx);caret-color:var(--hi);padding:.04em 0 .1em;text-transform:lowercase;transition:color .3s}
+#w:focus-visible{outline:0}
+#w::placeholder{color:transparent;-webkit-text-stroke:2px rgba(255,242,0,.75)}
+.wbox:after{content:"";position:absolute;left:8%;right:8%;bottom:4%;height:3px;border-radius:3px;background:rgba(244,244,240,.14);transition:background .3s}
+.wbox:focus-within:after{background:var(--hi);box-shadow:0 0 18px var(--hi)}
+.mine .wbox:after,.taken .wbox:after{opacity:0}
+.tlab{display:flex;width:fit-content;align-items:center;gap:10px;margin:22px auto 0;font:800 15px var(--f);letter-spacing:-.01em;color:#000;background:var(--hi);padding:8px 16px;border-radius:999px;opacity:0;transform:translateY(14px);transition:all .9s .25s var(--ease)}
+.tlab svg{width:16px;height:16px;animation:bob 1.2s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(3px)}}
+body.in .tlab{opacity:1;transform:none}
+.typed .tlab{opacity:0;transform:translateY(-6px);pointer-events:none}
+.wal{height:42px;padding:0 18px;border-radius:999px;background:var(--tx);color:#000;font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px;transition:background .3s}
+.wal:hover{background:var(--hi)}
+.wal.on{background:rgba(255,255,255,.06);color:var(--tx);box-shadow:inset 0 0 0 1px var(--ln2);font:600 13px var(--m)}
+.wal.on i{width:8px;height:8px;border-radius:50%;background:var(--up);box-shadow:0 0 10px var(--up)}
+.flow{display:flex;flex-direction:column;align-items:center;gap:16px}
+.pips{display:flex;gap:8px;font:600 12.5px var(--m);color:var(--mute)}
+.pips span{display:flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;box-shadow:inset 0 0 0 1px var(--ln)}
+.pips span i{width:7px;height:7px;border-radius:50%;background:var(--mute)}
+.pips span.on{color:var(--tx);box-shadow:inset 0 0 0 1px var(--hi)}.pips span.on i{background:var(--hi);animation:pul 1s infinite}
+.pips span.ok{color:var(--up)}.pips span.ok i{background:var(--up)}
+.cap{display:inline-flex;align-items:center;gap:10px;height:40px;padding:0 6px 0 14px;margin-top:14px;border-radius:999px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px var(--ln2);font:500 13px var(--m);color:var(--soft);max-width:100%}
+.cap b{color:var(--hi);font-weight:700}.cap span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cap button{height:30px;padding:0 12px;border-radius:999px;background:rgba(255,255,255,.1);font:700 12px var(--f);color:var(--tx);flex:none}.cap button:hover{background:var(--hi);color:#000}
+.ferr{font:500 13px var(--m);color:var(--dn);min-height:18px}
+.ov{position:fixed;inset:0;z-index:88;background:rgba(0,0,0,.66);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:grid;place-items:center;padding:16px;opacity:0;transition:opacity .3s}
+.ov.on{opacity:1}
+[hidden]{display:none!important}
+.sh{width:100%;max-width:440px;border-radius:28px;background:#111112;box-shadow:inset 0 0 0 1px var(--ln2),0 40px 120px rgba(0,0,0,.7);padding:24px;transform:translateY(20px) scale(.97);transition:transform .4s var(--ease)}
+.ov.on .sh{transform:none}
+.sh.wide{max-width:560px}
+.sh h3{font:900 34px/.95 var(--f);letter-spacing:-.05em;display:flex;justify-content:space-between;align-items:start;gap:12px}
+.sh h3 em{font-style:normal;color:var(--hi)}
+.sh .x{width:36px;height:36px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--ln2);display:grid;place-items:center;color:var(--soft);flex:none;font:500 18px var(--f)}
+.wl{display:grid;gap:8px;margin-top:20px}
+.wl button{display:flex;align-items:center;gap:14px;height:64px;padding:0 16px;border-radius:18px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px var(--ln);font-weight:800;font-size:17px;text-align:left;transition:box-shadow .2s,background .2s}
+.wl button:hover{box-shadow:inset 0 0 0 1.5px var(--hi);background:rgba(255,242,0,.05)}
+.wl .lg{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex:none}
+.wl .lg svg{width:22px;height:22px}
+.wl small{margin-left:auto;font:600 12px var(--m);color:var(--mute)}
+.wl small.ok{color:var(--up)}
+.sub2{margin-top:14px;font:italic 19px/1.3 var(--s);color:var(--soft)}
+.pv{display:block;margin:16px auto 0;font:500 12px var(--m);color:var(--mute);text-decoration:underline;text-underline-offset:3px}
+.post{margin-top:18px;border-radius:18px;background:#000;box-shadow:inset 0 0 0 1px var(--ln2);padding:16px}
+.post textarea{width:100%;min-height:200px;resize:vertical;background:none;border:0;outline:0;color:var(--tx);font:500 16.5px/1.45 var(--f)}
+.pr2{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.pr2 .btn{height:50px;padding:0 22px;font-size:15px}
+.pcount{margin-left:auto;align-self:center;font:500 12px var(--m);color:var(--mute)}
+
+.mine #w{color:#09090a}
+.taken #w{color:var(--tx)}
+.stamp{position:absolute;right:2%;top:2%;z-index:2;font:900 clamp(14px,1.8vw,22px)/1 var(--f);letter-spacing:.04em;text-transform:uppercase;padding:.45em .7em;border:3px solid var(--dn);color:var(--dn);border-radius:8px;transform:rotate(-10deg) scale(1.6);opacity:0;transition:all .35s var(--ease);pointer-events:none;background:rgba(9,9,10,.6)}
+.taken .stamp{opacity:1;transform:rotate(-10deg) scale(1)}
+.entry{margin-top:10px;min-height:34px;font:italic 26px/1.2 var(--s);color:var(--soft);opacity:0;transform:translateY(14px);transition:all .9s .35s var(--ease)}
+.entry b{font:700 13px var(--m);font-style:normal;letter-spacing:.06em;color:var(--tx);background:rgba(255,255,255,.08);padding:4px 9px;border-radius:999px;margin:0 6px;vertical-align:4px}
+.entry .free{color:#000;background:var(--hi)}
+.entry .tk{color:var(--hi)}
+.act{display:flex;justify-content:center;gap:10px;margin-top:26px;min-height:56px;opacity:0;transform:translateY(14px);transition:all .9s .5s var(--ease)}
+body.in .kick,body.in .entry,body.in .act{opacity:1;transform:none}
+.btn{position:relative;display:inline-flex;align-items:center;gap:10px;height:56px;padding:0 30px;border-radius:999px;background:var(--hi);color:#000;font-weight:800;font-size:16px;letter-spacing:-.01em;overflow:hidden;white-space:nowrap;transition:transform .3s var(--ease),opacity .3s}
+.btn span{position:relative;z-index:1}
+.btn:before{content:"";position:absolute;left:var(--x,50%);top:var(--y,50%);width:0;height:0;border-radius:50%;background:#fff;transform:translate(-50%,-50%);transition:width .5s var(--ease),height .5s var(--ease)}
+.btn:hover:before{width:420px;height:420px}
+.btn.gh{background:rgba(255,255,255,.06);color:var(--tx);box-shadow:inset 0 0 0 1px var(--ln2);backdrop-filter:blur(10px)}
+.btn.gh:hover{color:#000}
+.btn[disabled]{opacity:.35;pointer-events:none}
+.steps{display:flex;gap:18px;justify-content:center;font:500 13px var(--m);color:var(--mute);align-items:center;flex-wrap:wrap}
+.steps span.on{color:var(--tx)}.steps span.ok{color:var(--up)}
+.hint{position:absolute;left:0;right:0;bottom:4vh;z-index:5;text-align:center;font:500 11px var(--m);letter-spacing:.24em;color:var(--mute);text-transform:uppercase}
+.flash{position:fixed;inset:0;pointer-events:none;z-index:80;background:var(--hi);opacity:0;mix-blend-mode:overlay}
+.flash.go{animation:fl .7s ease-out}@keyframes fl{0%{opacity:.6}100%{opacity:0}}
+
+/* live claims */
+.marq{border-block:1px solid var(--ln);overflow:hidden;padding:16px 0;position:relative}
+.marq .tr{display:flex;gap:12px;width:max-content;animation:mq 60s linear infinite}
+.marq:hover .tr{animation-play-state:paused}
+@keyframes mq{to{transform:translateX(-50%)}}
+.ch{display:flex;align-items:center;gap:10px;height:46px;padding:0 18px;border-radius:999px;box-shadow:inset 0 0 0 1px var(--ln);background:rgba(255,255,255,.03);white-space:nowrap}
+.ch b{font:900 20px var(--f);letter-spacing:-.04em}
+.ch small{font:12px var(--m);color:var(--mute)}
+.ch .u{font:700 12px var(--m);color:var(--up)}
+
+/* wall */
+.wall{padding:130px 0 120px}
+.big{font:900 clamp(56px,9vw,150px)/.86 var(--f);letter-spacing:-.065em}
+.big em{font-style:normal;color:var(--hi)}
+.wh{display:flex;justify-content:space-between;align-items:end;gap:20px;flex-wrap:wrap}
+.tabs{display:flex;gap:4px;padding:4px;border-radius:999px;box-shadow:inset 0 0 0 1px var(--ln2)}
+.tabs button{height:36px;padding:0 16px;border-radius:999px;font-weight:700;font-size:14px;color:var(--soft)}
+.tabs button.on{background:var(--tx);color:#000}
+.grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:44px;align-items:baseline}
+.cell{position:relative;display:inline-flex;align-items:baseline;gap:10px;padding:.18em .42em;border-radius:14px;box-shadow:inset 0 0 0 1px var(--ln);font-weight:900;letter-spacing:-.05em;line-height:1;transition:background .25s,color .25s,box-shadow .25s,transform .3s var(--ease)}
+.cell small{font:700 .26em var(--m);letter-spacing:0;color:var(--mute);transition:color .25s}
+.cell:hover{background:var(--hi);color:#000;box-shadow:none;transform:translateY(-3px) rotate(-1deg)}
+.cell:hover small{color:#000}
+.cell.me{box-shadow:inset 0 0 0 2px var(--hi)}
+.list{margin-top:44px;border-top:1px solid var(--ln)}
+.row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.6fr) minmax(0,.7fr) 110px auto;gap:18px;align-items:center;padding:18px 4px;border-bottom:1px solid var(--ln);transition:background .2s}
+.row:hover{background:rgba(255,255,255,.025)}
+.row.me{box-shadow:inset 3px 0 0 var(--hi)}
+.row .wd{display:flex;align-items:baseline;gap:12px;min-width:0;cursor:pointer}
+.row .wd b{font:900 clamp(30px,3.4vw,48px)/1 var(--f);letter-spacing:-.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .wd span{font:700 13px var(--m);color:var(--hi);white-space:nowrap}
+.row .wd:hover b{color:var(--hi)}
+.row .ca2{display:flex;align-items:center;gap:8px;min-width:0;font:500 13px var(--m);color:var(--soft)}
+.row .ca2 em{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .ca2 button{flex:none;height:28px;padding:0 10px;border-radius:999px;background:rgba(255,255,255,.08);font:700 11.5px var(--f);color:var(--tx)}
+.row .ca2 button:hover{background:var(--hi);color:#000}
+.row .by,.row .ago{font:500 12.5px var(--m);color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .vw{height:42px;padding:0 18px;border-radius:999px;background:var(--tx);color:#000;font-weight:800;font-size:14px;display:inline-flex;align-items:center;white-space:nowrap;transition:background .2s}
+.row .vw:hover{background:var(--hi)}
+.row .vw.off{background:rgba(255,255,255,.06);color:var(--mute);pointer-events:none}
+.lh{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.6fr) minmax(0,.7fr) 110px auto;gap:18px;padding:0 4px 12px;font:500 11px var(--m);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.lh span:last-child{width:110px}
+.more{display:block;margin:26px auto 0;height:48px;padding:0 24px;border-radius:999px;box-shadow:inset 0 0 0 1px var(--ln2);font-weight:700;color:var(--soft)}
+.more:hover{color:#000;background:var(--hi);box-shadow:none}
+.empty2{padding:46px 4px;font:italic 26px var(--s);color:var(--soft);border-bottom:1px solid var(--ln)}
+@media (max-width:820px){.lh{display:none}.row{grid-template-columns:minmax(0,1fr) auto;gap:10px 14px}.row .ca2{grid-column:1/-1;order:3}.row .by,.row .ago{display:none}.row .vw{grid-row:1;grid-column:2}}
+
+/* rules strip */
+.rules{display:grid;grid-template-columns:repeat(3,1fr);border-block:1px solid var(--ln)}
+.rules div{padding:46px 32px;border-right:1px solid var(--ln)}
+.rules div:last-child{border-right:0}
+.rules b{display:block;font:900 clamp(34px,4vw,60px)/.9 var(--f);letter-spacing:-.05em}
+.rules b em{font-style:normal;color:var(--hi)}
+.rules span{display:block;margin-top:12px;font:italic 22px/1.25 var(--s);color:var(--soft)}
+
+footer{position:relative;padding:70px 0 32px;overflow:hidden}
+.fw{font:900 clamp(140px,34vw,560px)/.78 var(--f);letter-spacing:-.08em;text-align:center;color:transparent;-webkit-text-stroke:1.5px rgba(255,255,255,.12);user-select:none;transition:color .5s,-webkit-text-stroke-color .5s}
+.fw:hover{color:var(--hi);-webkit-text-stroke-color:var(--hi)}
+.fr{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-top:24px}
+.fr small{font:12px var(--m);color:var(--mute)}
+
+.rv{opacity:0;transform:translateY(50px);filter:blur(6px);transition:opacity 1.1s var(--ease),transform 1.1s var(--ease),filter 1.1s var(--ease)}
+.rv.in{opacity:1;transform:none;filter:none}
+#toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translate(-50%,24px);background:var(--hi);color:#000;font-weight:800;font-size:14.5px;padding:13px 20px;border-radius:999px;opacity:0;transition:all .35s var(--ease);z-index:95;pointer-events:none;max-width:90vw;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.cur{position:fixed;left:0;top:0;width:10px;height:10px;border-radius:50%;background:var(--hi);pointer-events:none;z-index:99;mix-blend-mode:difference;transition:width .3s var(--ease),height .3s var(--ease)}
+.cur.big2{width:60px;height:60px}
+@media (hover:none){.cur{display:none}}
+
+@media (max-width:820px){.rules{grid-template-columns:1fr}.rules div{border-right:0;border-bottom:1px solid var(--ln)}.rules div:last-child{border-bottom:0}}
+@media (max-width:640px){
+  .wrap{padding:0 18px}
+  nav{padding:14px 16px;gap:8px}
+  .cnt{display:none}
+  .ca{height:38px;font-size:11.5px;padding-left:12px}.ca .cp{width:28px;height:28px}.xb{width:38px;height:38px}
+  .entry{font-size:20px}
+  .btn{height:52px;padding:0 22px;font-size:15px}
+  .stamp{right:0;top:-8%}
+  .rules div{padding:34px 18px}
+}
+@media (prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+
+<div class="grain"></div><div class="cur" id="cur"></div><div class="flash" id="flash"></div>
+<div id="intro"><div class="slots" id="slots"></div><div class="ibar" id="ibar">loading the dictionary</div></div>
+
+<nav id="nav">
+  <a class="logo" href="#top"><i>W</i>Word</a>
+  <div class="nr">
+    <span class="cnt"><i></i><b id="nClaimed">0</b> taken</span>
+    <button class="wal" id="walB" type="button">Connect wallet</button>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <canvas id="tun"></canvas><div class="vig"></div>
+  <div class="stage" id="stage">
+    <div class="kick">One word. One coin. <b>First come, first served.</b></div>
+    <div class="tlab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>Start typing</div>
+    <div class="wbox"><div id="hl"></div><input id="w" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Type a word"><span class="stamp" id="stamp">Taken</span></div>
+    <div class="entry" id="entry"></div>
+    <div class="act" id="act"></div>
+  </div>
+  <div class="hint">Click anywhere and start typing</div>
+</header>
+
+<div class="marq"><div class="tr" id="marq"></div></div>
+
+<section class="wall" id="wall">
+  <div class="wrap">
+    <div class="wh rv"><h2 class="big">Already<br><em>taken.</em></h2>
+      <div class="tabs" id="tabs"><button class="on" data-s="top">Top</button><button data-s="new">New</button><button data-s="short">Short</button></div></div>
+    <div class="grid rv" id="grid"></div>
+    <button class="more" id="more" type="button" hidden>Show more</button>
+  </div>
+</section>
+
+<div class="rules rv">
+  <div><b>One <em>word.</em></b><span>No spaces. No numbers. Just the word.</span></div>
+  <div><b>One <em>coin.</em></b><span>Every word can only ever be launched once.</span></div>
+  <div><b>First <em>wins.</em></b><span>Claim it before someone else does.</span></div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="fw">word</div>
+    <div class="fr"><small>Every word is a coin · Solana · pump.fun · v12</small></div>
+  </div>
+</footer>
+<div id="toast" role="status" aria-live="polite"></div>
+<div class="ov" id="ov" hidden></div>
+
+<script>
+/* ============================================================
+   Word config
+   HANDLE:     the X handle used in post templates
+   SITE:       your domain, used in post templates
+   API:        where the Netlify functions live. Leave as "/api".
+   If /api/words answers, the site runs live: real claims, real
+   launches. If it doesn't (local file, preview), it runs a demo.
+   ============================================================ */
+const CONFIG = { HANDLE: "@wordfun", SITE: "word.fun", API: "/api", VIEW_URL: "https://axiom.trade/meme/{ca}" };
+const viewUrl = ca => CONFIG.VIEW_URL.replace("{ca}", encodeURIComponent(ca));
+let LIVE = false;
+
+
+/* tab icon: force the Word logo, replacing any icon the host injects */
+const FAV = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fff200'/%3E%3Ctext x='32' y='47' font-family='Arial Black,Arial,sans-serif' font-weight='900' font-size='40' text-anchor='middle' fill='%2309090a'%3EW%3C/text%3E%3C/svg%3E";
+function setFav(){ document.querySelectorAll("link[rel~='icon'],link[rel='apple-touch-icon']").forEach(l => { if (l.href !== FAV) l.remove(); }); if (!document.querySelector(`link[rel='icon'][href="${FAV}"]`)) ["icon", "shortcut icon", "apple-touch-icon"].forEach(r => { const l = document.createElement("link"); l.rel = r; l.type = "image/svg+xml"; l.href = FAV; document.head.appendChild(l); }); }
+setFav(); addEventListener("load", setFav); setTimeout(setFav, 1500);
+new MutationObserver(() => { if ([...document.querySelectorAll("link[rel~='icon']")].some(l => l.href !== FAV)) setFav(); }).observe(document.head, { childList: true });
+
+const $ = id => document.getElementById(id);
+const R = Math.random, TAU = Math.PI * 2;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(m){ const t = $("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), 2400); }
+function hash(s){ let h = 7; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 2147483647; return h || 7; }
+function rng(seed){ let s = seed % 2147483647 || 7; return () => (s = s * 16807 % 2147483647) / 2147483647; }
+const fmt = n => n >= 1e6 ? "$" + (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? "$" + Math.round(n / 1e3) + "K" : "$" + Math.round(n);
+const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+const wal = seed => { const r = rng(hash(seed + "w")); let s = ""; for (let i = 0; i < 4; i++) s += B58[r() * 58 | 0]; s += "…"; for (let i = 0; i < 4; i++) s += B58[r() * 58 | 0]; return s; };
+const store = { get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }, set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+addEventListener("scroll", () => $("nav").classList.toggle("sc", scrollY > 40), { passive: true });
+
+/* ---------- the dictionary: claimed words ---------- */
+const SEED = "moon sol gm based chad doge cat dog pepe love money rich send pump wagmi ser fren alpha degen ape king god fire gold war peace sex hope lol cope rekt jeet bags meme frog bull bear wif bonk trump elon ai god mom dad baby girl boy sun star mars earth rain snow ice blood heart soul time void zero one".split(" ");
+const FREEPOOL = "tuesday banana wizard pizza velvet thunder pickle saturn mango ghost rocket marble echo nova cactus waffle laser tiger lemon crystal hammer jelly orbit panda raven sushi tornado violet whale yeti zebra karma glitch chaos lunar riot vibe blink spark drift ember prism dusk".split(" ");
+const CLAIMED = new Map();
+const r0 = rng(42);
+/* real Solana coins whose ticker is a normal word come from the server (/api/market, DexScreener) */
+const addMarket = list => list.forEach(m => { const ex = CLAIMED.get(m.word); if (ex && !ex.ext) return; CLAIMED.set(m.word, { w: m.word, mint: m.ca, mc: m.mc ?? null, ch: m.ch ?? null, by: "Solana", t: m.at || 0, ext: true }); });
+store.get("word:mine", []).forEach(w => { if (!CLAIMED.has(w)) CLAIMED.set(w, { w, by: "you", t: Date.now(), me: true }); });
+const updCount = () => $("nClaimed").textContent = [...CLAIMED.values()].filter(c => !c.pending).length.toLocaleString();
+updCount();
+
+/* ---------- intro: slot letters lock into WORD ---------- */
+(function intro(){
+  const word = "WORD", AL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  $("slots").innerHTML = [...word].map(() => `<span class="slot"></span>`).join("");
+  const S = [...document.querySelectorAll(".slot")];
+  const t0 = performance.now(), lockAt = [380, 560, 740, 920];
+  (function spin(now){
+    const e = now - t0; let done = true;
+    S.forEach((s, i) => { if (e < lockAt[i]) { s.textContent = AL[R() * 26 | 0]; done = false; } else if (!s.classList.contains("lock")) { s.textContent = word[i]; s.classList.add("lock"); } });
+    if (!done) requestAnimationFrame(spin);
+    else setTimeout(() => { $("intro").classList.add("out"); document.body.classList.remove("lock"); document.body.classList.add("in"); setTimeout(() => { $("intro").remove(); $("w").focus({ preventScroll: true }); }, 1000); }, 300);
+  })(t0);
+})();
+document.body.classList.add("lock");
+/* never get stuck on the intro, even if something below fails */
+setTimeout(() => { const i = $("intro"); if (i) { i.classList.add("out"); document.body.classList.remove("lock"); document.body.classList.add("in"); setTimeout(() => i.remove(), 1000); } }, 3500);
+
+/* ---------- tunnel of words ---------- */
+const TW = { c: $("tun"), x: null, w: 0, h: 0, P: [], mx: 0, my: 0, tx: 0, ty: 0, boost: 0, q: "" };
+const ALLW = [...SEED, ...FREEPOOL, "the", "you", "why", "now", "yes", "no", "run", "win", "lose", "live", "die", "fly", "eat", "sleep", "dream", "wake", "ride", "dance", "sing", "cry"];
+function tunInit(){
+  const d = Math.min(1.5, devicePixelRatio || 1); TW.w = TW.c.clientWidth; TW.h = TW.c.clientHeight; TW.c.width = TW.w * d; TW.c.height = TW.h * d; TW.x = TW.c.getContext("2d"); TW.x.setTransform(d, 0, 0, d, 0, 0);
+  if (!TW.P.length) TW.P = Array.from({ length: TW.w < 700 ? 110 : 200 }, () => spawn(R() * 1.6 + .05));
+}
+function spawn(z){ const a = R() * TAU, r = .25 + R() * 1.25; return { w: ALLW[R() * ALLW.length | 0], x: Math.cos(a) * r, y: Math.sin(a) * r * .7, z: z ?? 1.65 }; }
+addEventListener("resize", tunInit);
+$("top").addEventListener("pointermove", e => { TW.tx = e.clientX / innerWidth - .5; TW.ty = e.clientY / innerHeight - .5; }, { passive: true });
+(function frame(){
+  requestAnimationFrame(frame); if (!TW.x || document.hidden || scrollY > innerHeight) return;
+  const x = TW.x, w = TW.w, h = TW.h; TW.mx += (TW.tx - TW.mx) * .05; TW.my += (TW.ty - TW.my) * .05; TW.boost *= .94;
+  x.fillStyle = "#09090a"; x.fillRect(0, 0, w, h);
+  const sp = .0036 + TW.boost * .03, cx = w / 2 - TW.mx * 120, cy = h / 2 - TW.my * 80, F = Math.min(w, h) * .55;
+  x.textAlign = "center"; x.textBaseline = "middle";
+  TW.P.forEach((p, i) => {
+    p.z -= sp; if (p.z < .04) TW.P[i] = p = spawn();
+    const k = F / p.z, sx = cx + p.x * k, sy = cy + p.y * k, size = Math.min(96, 24 / p.z);
+    if (sx < -300 || sx > w + 300 || sy < -200 || sy > h + 200) return;
+    const a = Math.min(1, (1.65 - p.z) * 1.2) * Math.min(1, Math.max(0, p.z - .08) * 3) * (Math.hypot(sx - w / 2, sy - h / 2) < Math.min(w, h) * .36 ? .15 : 1), claimed = CLAIMED.has(p.w), match = TW.q && p.w.startsWith(TW.q);
+    x.font = `900 ${size | 0}px 'Inter Tight',sans-serif`;
+    x.globalAlpha = a * (match ? 1 : claimed ? .55 : .22);
+    x.fillStyle = match ? "#fff200" : claimed ? "#f4f4f0" : "#5e5e58";
+    x.fillText(p.w, sx, sy);
+  });
+  x.globalAlpha = 1;
+})();
+
+/* ---------- the giant word ---------- */
+const W = $("w"), stage = $("stage"), mctx = document.createElement("canvas").getContext("2d");
+W.placeholder = "type a word";
+function fit(){
+  const t = W.value || W.placeholder || "word", avail = Math.min(1200, innerWidth * .92);
+  mctx.font = "900 100px 'Inter Tight',sans-serif"; const m = mctx.measureText(t).width * .935 + 20;
+  const size = Math.max(42, Math.min(innerHeight * .3, innerWidth * .26, 100 * avail / m));
+  W.style.fontSize = size + "px";
+  const hl = $("hl"), tw = mctx.measureText(t).width * .935 * size / 100; hl.style.left = `calc(50% - ${tw / 2 + size * .06}px)`; hl.style.right = `calc(50% - ${tw / 2 + size * .06}px)`;
+}
+const clean = v => v.toLowerCase().replace(/[^a-z]/g, "").slice(0, 20);
+let busy = false;
+const TK = v => v.toUpperCase().slice(0, 10);
+function caPill(ca){ return ca ? `<div class="cap"><b>CA</b><span>${esc(ca)}</span><button type="button" id="bCa" data-ca="${esc(ca)}">Copy</button></div>` : ""; }
+function wireCa(){ const b = $("bCa"); if (b) b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.ca); toast("CA copied"); } catch { toast(b.dataset.ca); } }; }
+function render(){
+  const v = W.value; TW.q = v; if (busy) return; stage.classList.remove("taken", "mine", "free"); stage.classList.toggle("typed", !!v);
+  const E = $("entry"), A = $("act");
+  if (!v) { E.innerHTML = `<i>noun.</i> any word you can think of`; A.innerHTML = ""; return; }
+  const c = CLAIMED.get(v);
+  if (c && c.me) { stage.classList.add("mine"); E.innerHTML = `<b class="free">YOURS</b> <span class="tk">$${esc(TK(v))}</span>${c.mint ? " · live on pump.fun" : " · claimed by you"}`;
+    A.innerHTML = `<div class="flow"><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button class="btn" id="bShare"><span>Post it on X</span></button>${c.mint ? `<a class="btn gh" href="${esc(viewUrl(c.mint))}" target="_blank" rel="noopener"><span>View coin</span></a>` : ""}</div>${caPill(c.mint)}</div>`;
+    $("bShare").onclick = () => postSheet(v); wireCa(); }
+  else if (c && c.pending) { stage.classList.add("taken"); E.innerHTML = `<b>CLAIMING</b> someone is launching <i>${esc(v)}</i> right now`; A.innerHTML = ""; }
+  else if (c) { stage.classList.add("taken");
+    const chg = c.ch != null ? ` · <span style="color:${c.ch >= 0 ? "var(--up)" : "var(--dn)"};font-style:normal;font:700 15px var(--m)">${c.ch >= 0 ? "+" : ""}${(+c.ch).toFixed(1)}%</span>` : "";
+    E.innerHTML = c.ext ? `<b>${c.mc ? fmt(c.mc) : "ON SOLANA"}</b> already a coin on Solana${chg}` : `<b>${c.mc ? fmt(c.mc) : "LIVE"}</b> claimed by ${esc(c.by)}${chg}`;
+    A.innerHTML = c.mint ? `<div class="flow"><a class="btn" href="${esc(viewUrl(c.mint))}" target="_blank" rel="noopener"><span>View $${esc(TK(v))}</span></a>${caPill(c.mint)}</div>` : `<button class="btn" id="bBuy"><span>View $${esc(TK(v))}</span></button>`;
+    const bb = $("bBuy"); if (bb) bb.onclick = () => toast("No CA yet"); wireCa(); }
+  else { stage.classList.add("free"); E.innerHTML = `<b class="free">FREE</b> nobody has <i>${esc(v)}</i> yet`;
+    A.innerHTML = `<button class="btn" id="bClaim"><span>Claim "${esc(v)}"</span></button>`; $("bClaim").onclick = () => claim(v); }
+}
+W.addEventListener("input", () => { if (busy) { W.value = flowWord; return; } const c = clean(W.value); if (c !== W.value) W.value = c; TW.boost = Math.min(1, TW.boost + .25); fit(); render(); });
+W.addEventListener("keydown", e => { if (e.key === "Enter") { const b = $("bClaim") || $("bGo") || $("bBuy") || $("bShare"); b && b.click(); } });
+
+/* ---------- wallets ---------- */
+const WAL = {
+  phantom:  { n: "Phantom",  bg: "#ab9ff2", get: () => window.phantom?.solana?.isPhantom ? window.phantom.solana : (window.solana?.isPhantom ? window.solana : null), url: "https://phantom.app/download",
+              svg: `<svg viewBox="0 0 24 24" fill="#fff"><path d="M4 13.2C4 8.1 7.6 4.5 12.3 4.5c4.3 0 7.7 3.2 7.7 7.4 0 4.6-3.3 7.6-6 7.6-1.1 0-1.4-.8-1.4-.8s-.6.8-1.9.8c-1 0-1.4-.7-1.4-.7s-.7.7-1.6.7C5.7 19.5 4 16.6 4 13.2Z"/><circle cx="11" cy="11" r="1.3" fill="#ab9ff2"/><circle cx="15" cy="11" r="1.3" fill="#ab9ff2"/></svg>` },
+  solflare: { n: "Solflare", bg: "#fc7227", get: () => window.solflare?.isSolflare ? window.solflare : null, url: "https://solflare.com/download",
+              svg: `<svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.6 6.4L21 9.5l-5 4.3 1.6 6.7L12 17l-5.6 3.5L8 13.8 3 9.5l6.4-1.1Z"/></svg>` },
+  backpack: { n: "Backpack", bg: "#e33e3f", get: () => window.backpack?.isBackpack ? window.backpack : (window.backpack || null), url: "https://backpack.app/download",
+              svg: `<svg viewBox="0 0 24 24" fill="#fff"><path d="M9 3h6a2 2 0 0 1 2 2v1.2A5 5 0 0 1 20 11v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a5 5 0 0 1 3-4.8V5a2 2 0 0 1 2-2Zm0 2v1h6V5Z"/></svg>` },
+};
+const S = { prov: null, pk: null, kind: null, preview: false };
+const short = a => a.slice(0, 4) + "…" + a.slice(-4);
+function walUI(){ const b = $("walB"); if (S.pk) { b.className = "wal on"; b.innerHTML = `<i></i>${esc(short(S.pk))}`; } else { b.className = "wal"; b.textContent = "Connect wallet"; } }
+$("walB").onclick = async () => { if (S.pk) { try { await S.prov?.disconnect?.(); } catch {} S.prov = S.pk = null; S.preview = false; walUI(); toast("Wallet disconnected"); return; } try { await connectWallet(); } catch {} };
+function sheet(html, wide){
+  const ov = $("ov"); ov.innerHTML = `<div class="sh${wide ? " wide" : ""}" role="dialog" aria-modal="true">${html}</div>`; ov.hidden = false; requestAnimationFrame(() => ov.classList.add("on"));
+  return new Promise(res => { sheet.res = res; ov.onclick = e => { if (e.target === ov || e.target.closest("[data-close]")) closeSheet(null); }; });
+}
+function closeSheet(v){ const ov = $("ov"); ov.classList.remove("on"); setTimeout(() => { ov.hidden = true; ov.innerHTML = ""; }, 300); const r = sheet.res; sheet.res = null; r && r(v); }
+addEventListener("keydown", e => { if (e.key === "Escape" && !$("ov").hidden) closeSheet(null); });
+function connectWallet(){
+  return new Promise((resolve, reject) => {
+    const rows = Object.entries(WAL).map(([k, w]) => { const has = !!w.get(); return `<button type="button" data-k="${k}"><span class="lg" style="background:${w.bg}">${w.svg}</span>${w.n}<small class="${has ? "ok" : ""}">${has ? "Detected" : "Install"}</small></button>`; }).join("");
+    sheet(`<h3><span>Connect a <em>wallet.</em></span><button class="x" data-close aria-label="Close">×</button></h3><div class="wl">${rows}</div>${LIVE ? "" : `<button class="pv" type="button" id="pvB">No wallet? Preview the flow</button>`}`).then(v => v ? resolve(v) : reject(new Error("closed")));
+    $("ov").querySelector(".wl").onclick = async e => {
+      const b = e.target.closest("[data-k]"); if (!b) return; const k = b.dataset.k, w = WAL[k], p = w.get();
+      if (!p) { const a = document.createElement("a"); a.href = w.url; a.target = "_blank"; a.rel = "noopener"; a.click(); return; }
+      try { b.querySelector("small").textContent = "Approve in wallet"; const r = await p.connect(); const pk = (r?.publicKey || p.publicKey)?.toString(); if (!pk) throw new Error("No address"); S.prov = p; S.pk = pk; S.kind = k; S.preview = false; walUI(); closeSheet(pk); toast("Connected " + short(pk)); markMine(); }
+      catch (err) { b.querySelector("small").textContent = "Rejected"; b.querySelector("small").className = ""; }
+    };
+    if ($("pvB")) $("pvB").onclick = () => { S.preview = true; S.prov = null; S.pk = (() => { let s = ""; for (let i = 0; i < 44; i++) s += B58[R() * 58 | 0]; return s; })(); S.kind = "preview"; walUI(); closeSheet(S.pk); };
+  });
+}
+function b58(bytes){ const A = B58; let d = [], s = ""; for (const byte of bytes) { let c = byte; for (let j = 0; j < d.length; j++) { c += d[j] << 8; d[j] = c % 58; c = c / 58 | 0; } while (c) { d.push(c % 58); c = c / 58 | 0; } } for (const byte of bytes) { if (byte === 0) s += "1"; else break; } return s + d.reverse().map(x => A[x]).join(""); }
+async function signClaim(v){
+  const msg = `Word\n\nI'm claiming the word "${v}" as $${TK(v)}.\n\nWallet: ${S.pk}\nTime: ${new Date().toISOString()}`;
+  if (S.preview) { await new Promise(r => setTimeout(r, 700)); return { msg, sig: "preview" }; }
+  const out = await S.prov.signMessage(new TextEncoder().encode(msg), "utf8");
+  const raw = out?.signature || out; return { msg, sig: b58(new Uint8Array(raw)) };
+}
+let web3P = null;
+const web3 = () => web3P || (web3P = new Promise((res, rej) => { const s = document.createElement("script"); s.src = "https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"; s.onload = () => res(window.solanaWeb3); s.onerror = () => rej(new Error("Couldn't load Solana library")); document.head.appendChild(s); }));
+async function api(path, body){
+  const r = await fetch(CONFIG.API + path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
+  let j = {}; try { j = await r.json(); } catch {}
+  if (!r.ok) { const e = new Error(j.error || "Server error " + r.status); e.status = r.status; throw e; }
+  return j;
+}
+async function launchCoin(v, signed){
+  if (!LIVE || S.preview) { await new Promise(r => setTimeout(r, 900)); return { mint: null }; }
+  const j = await api("/claim", { word: v, wallet: S.pk, message: signed.msg, signature: signed.sig });
+  const W3 = await web3();
+  const tx = W3.VersionedTransaction.deserialize(Uint8Array.from(atob(j.transaction), c => c.charCodeAt(0)));
+  const sent = await S.prov.signAndSendTransaction(tx);
+  const sig = sent?.signature || sent;
+  setLaunchText("Confirming on Solana…");
+  for (let i = 0; i < 30; i++) {
+    await new Promise(r => setTimeout(r, 2500));
+    try { const c = await api("/confirm", { word: v, tx: sig }); if (c.status === "live") return { mint: c.mint }; }
+    catch (e) { if (e.status === 400) throw e; }
+  }
+  throw new Error("Still confirming. Refresh in a minute to check");
+}
+function setLaunchText(t){ const b = document.querySelector("#act .btn[disabled] span"); if (b) b.textContent = t; }
+
+/* ---------- live data from the server ---------- */
+function markMine(){ CLAIMED.forEach(c => { c.me = !!(S.pk && c.wallet === S.pk) || (!LIVE && c.me); }); render(); paintWall(); }
+async function loadLive(){
+  try {
+    const j = await api("/words");
+    if (!Array.isArray(j.words)) return;
+    LIVE = true;
+    const prevExt = [...CLAIMED.values()].filter(c => c.ext);
+    CLAIMED.clear();
+    j.words.forEach(d => CLAIMED.set(d.word, { w: d.word, by: short(d.wallet), wallet: d.wallet, mint: d.mint, t: d.at, pending: d.status !== "live", me: !!(S.pk && d.wallet === S.pk) }));
+    prevExt.forEach(c => { if (!CLAIMED.has(c.w)) CLAIMED.set(c.w, c); });
+    refresh();
+    try {
+      const m = await api("/market");
+      if (Array.isArray(m.coins) && m.coins.length) { [...CLAIMED.values()].filter(c => c.ext).forEach(c => CLAIMED.delete(c.w)); addMarket(m.coins); }
+      CLAIMED.forEach(c => { const k = c.mint && m.caps?.[c.mint]; if (k && !c.ext) { c.mc = k.mc; c.ch = k.ch; } });
+      refresh();
+    } catch {}
+  } catch {}
+}
+
+function refresh(){
+  recent.length = 0;
+  const own = [...CLAIMED.values()].filter(c => !c.pending && !c.ext).sort((a, b) => b.t - a.t);
+  const ext = [...CLAIMED.values()].filter(c => c.ext).sort((a, b) => (b.mc || 0) - (a.mc || 0));
+  [...own, ...ext].slice(0, 16).forEach(c => recent.push({ w: c.w, by: c.ext ? "Solana" : c.by, mc: c.mc }));
+  updCount(); paintMarq(); paintWall(); if (!busy) render();
+}
+
+/* ---------- claim flow: connect → sign → launch ---------- */
+let flowWord = "";
+function flowUI(v, step, err){
+  const P = ["Connect", "Sign", "Launch"];
+  const btn = err ? `<button class="btn" id="bGo"><span>Try again</span></button><button class="btn gh" id="bCancel"><span>Cancel</span></button>`
+    : step === 0 ? `<button class="btn" id="bGo"><span>Connect wallet</span></button>` : step === 1 ? `<button class="btn" id="bGo"><span>Sign to claim "${esc(v)}"</span></button>` : `<button class="btn" disabled><span>Launching $${esc(TK(v))}…</span></button>`;
+  $("act").innerHTML = `<div class="flow"><div class="pips">${P.map((p, i) => `<span class="${i < step ? "ok" : i === step ? "on" : ""}"><i></i>${i + 1} ${p}</span>`).join("")}</div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">${btn}</div><div class="ferr">${err ? esc(err) : ""}</div></div>`;
+  const go = $("bGo"); if (go) go.onclick = () => runFlow(v, step);
+  const cn = $("bCancel"); if (cn) cn.onclick = () => { busy = false; render(); };
+}
+function claim(v){ busy = true; flowWord = v; flowUI(v, S.pk ? 1 : 0); }
+async function runFlow(v, step){
+  try {
+    if (step === 0) { flowUI(v, 0); await connectWallet(); step = 1; flowUI(v, 1); return; }
+    if (CLAIMED.has(v) && !CLAIMED.get(v).me) throw new Error(CLAIMED.get(v).ext ? `"${v}" is already a coin on Solana` : `"${v}" was just claimed by someone else`);
+    const btn = $("bGo"); if (btn) { btn.disabled = true; btn.querySelector("span").textContent = "Check your wallet"; }
+    const signed = await signClaim(v);
+    flowUI(v, 2);
+    const res = await launchCoin(v, signed);
+    CLAIMED.set(v, LIVE ? { w: v, by: "you", wallet: S.pk, t: Date.now(), me: true, mint: res.mint } : { w: v, mc: 4200 + R() * 2000, ch: 0, by: "you", t: Date.now(), me: true, mint: res.mint });
+    if (!LIVE) { const mine = store.get("word:mine", []); if (!mine.includes(v)) mine.push(v); store.set("word:mine", mine); }
+    busy = false; updCount(); render(); paintWall(); pushClaim(v, "you");
+    const f = $("flash"); f.classList.remove("go"); void f.offsetWidth; f.classList.add("go"); TW.boost = 1;
+    burst(); toast(`"${v}" is yours`);
+    setTimeout(() => postSheet(v), 1200);
+  } catch (e) {
+    if (e && e.message === "closed") { flowUI(v, step); return; }
+    const m = e?.code === 4001 || /reject|denied|cancel/i.test(e?.message || "") ? "You rejected the request in your wallet" : (e?.message || "Something went wrong");
+    flowUI(v, step === 0 ? 0 : 1, m); if (LIVE && e?.status === 409) loadLive();
+  }
+}
+
+/* ---------- post to X ---------- */
+const TPL = [
+  (w, ca) => `I own the word "${w}".${ca ? `\n\nCA: ${ca}` : ""}\n\nClaim your word → ${CONFIG.HANDLE}`,
+];
+let tplI = 0;
+function postSheet(v){
+  tplI = 0;
+  sheet(`<h3><span>Tell everyone <em>"${esc(v)}"</em> is yours.</span><button class="x" data-close aria-label="Close">×</button></h3>
+  <div class="post"><textarea id="ptx" aria-label="Post text"></textarea></div>
+  <div class="pr2"><button class="btn" id="pX" type="button"><span>Post on X</span></button><button class="btn gh" id="pCopy" type="button"><span>Copy</span></button><span class="pcount" id="pcnt"></span></div>`, true);
+  const ta = $("ptx"), cnt = () => $("pcnt").textContent = ta.value.length + " / 280";
+  const set = () => { ta.value = TPL[tplI % TPL.length](v, CLAIMED.get(v)?.mint); cnt(); };
+  set(); ta.addEventListener("input", cnt);
+    $("pCopy").onclick = async () => { try { await navigator.clipboard.writeText(ta.value); toast("Copied"); } catch { ta.select(); toast("Selected. Press copy"); } };
+  $("pX").onclick = () => { const a = document.createElement("a"); a.href = "https://x.com/intent/post?text=" + encodeURIComponent(ta.value); a.target = "_blank"; a.rel = "noopener"; a.click(); };
+}
+/* letter burst on claim */
+function burst(){
+  const r = W.getBoundingClientRect(), L = W.value.toUpperCase(), box = document.createElement("div");
+  box.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:85";
+  document.body.appendChild(box);
+  for (let i = 0; i < 46; i++) { const s = document.createElement("span"), a = R() * TAU, d = 160 + R() * 420;
+    s.textContent = L[R() * L.length | 0] || "W"; s.style.cssText = `position:absolute;left:${r.left + r.width / 2}px;top:${r.top + r.height / 2}px;font:900 ${18 + R() * 40}px 'Inter Tight';color:${R() < .6 ? "#fff200" : "#f4f4f0"};transition:transform 1.1s cubic-bezier(.2,.9,.2,1),opacity 1.1s;transform:translate(-50%,-50%)`;
+    box.appendChild(s); requestAnimationFrame(() => { s.style.transform = `translate(calc(-50% + ${Math.cos(a) * d}px),calc(-50% + ${Math.sin(a) * d}px)) rotate(${(R() - .5) * 120}deg)`; s.style.opacity = 0; }); }
+  setTimeout(() => box.remove(), 1300);
+}
+
+/* ---------- live claims marquee ---------- */
+const recent = [...CLAIMED.values()].slice(0, 16).map(c => ({ w: c.w, by: c.by, mc: c.mc }));
+function paintMarq(){ const h = recent.map(c => `<div class="ch"><b>${esc(c.w)}</b><small>$${esc(TK(c.w))}</small>${c.mc ? `<span class="u">${fmt(c.mc)}</span>` : `<small>${c.by === "you" ? "you" : esc(c.by)}</small>`}</div>`).join(""); $("marq").innerHTML = h + h; }
+function pushClaim(w, by){ recent.unshift({ w, by }); recent.length = Math.min(recent.length, 16); paintMarq(); }
+paintMarq();
+/* ---------- the taken wall ---------- */
+let sortBy = "top", shown = 64;
+const ago = t => { const m = (Date.now() - t) / 6e4; return m < 1 ? "now" : m < 60 ? (m | 0) + "m" : m < 1440 ? (m / 60 | 0) + "h" : (m / 1440 | 0) + "d"; };
+function paintWall(){
+  let L = [...CLAIMED.values()].filter(c => !c.pending);
+  if (sortBy === "top") L.sort((a, b) => (b.mc || 0) - (a.mc || 0) || b.t - a.t);
+  else if (sortBy === "new") L.sort((a, b) => (a.ext - b.ext) || b.t - a.t);
+  else L = L.filter(c => c.w.length <= 4).sort((a, b) => (b.mc || 0) - (a.mc || 0));
+  if (!L.length) { $("grid").innerHTML = `<p style="font:italic 26px var(--s);color:var(--soft)">Nothing yet. The first word is still up for grabs.</p>`; $("more").hidden = true; return; }
+  const n = Math.min(L.length, shown);
+  /* size by rank, like the original wall: biggest coins huge, then stepping down */
+  $("grid").innerHTML = L.slice(0, shown).map((c, i) => { const s = Math.round(110 - (n > 1 ? i / (n - 1) : 0) * 70 - (i < 3 ? 0 : 6)); return `<button class="cell${c.me ? " me" : ""}" data-w="${esc(c.w)}" style="font-size:${s.toFixed(0)}px">${esc(c.w)}<small>${c.mc ? fmt(c.mc) : c.me ? "you" : "$" + esc(TK(c.w))}</small></button>`; }).join("");
+  $("more").hidden = L.length <= shown;
+}
+$("more").onclick = () => { shown += 64; paintWall(); };
+$("tabs").onclick = e => { const b = e.target.closest("button"); if (!b) return; sortBy = b.dataset.s; shown = 64; document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b)); paintWall(); };
+$("grid").onclick = async e => {
+  const cp = e.target.closest("[data-ca]"); if (cp) { try { await navigator.clipboard.writeText(cp.dataset.ca); toast("CA copied"); } catch { toast(cp.dataset.ca); } return; }
+  const w = e.target.closest(".cell"); if (w) { W.value = w.dataset.w; fit(); render(); scrollTo({ top: 0, behavior: "smooth" }); }
+};
+paintWall();
+
+/* ---------- cursor, buttons, reveals ---------- */
+const cur = $("cur"); let cx = -99, cy = -99, ccx = -99, ccy = -99;
+addEventListener("pointermove", e => { cx = e.clientX; cy = e.clientY; const b = e.target.closest(".btn"); if (b) { const r = b.getBoundingClientRect(); b.style.setProperty("--x", e.clientX - r.left + "px"); b.style.setProperty("--y", e.clientY - r.top + "px"); } }, { passive: true });
+(function cl(){ requestAnimationFrame(cl); ccx += (cx - ccx) * .22; ccy += (cy - ccy) * .22; cur.style.transform = `translate(${ccx - cur.offsetWidth / 2}px,${ccy - cur.offsetHeight / 2}px)`; })();
+document.addEventListener("pointerover", e => cur.classList.toggle("big2", !!e.target.closest("a,button")));
+const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: .1 });
+document.querySelectorAll(".rv").forEach(el => io.observe(el));
+setTimeout(() => document.querySelectorAll(".rv").forEach(el => el.classList.add("in")), 6000);
+$("top").addEventListener("click", e => { if (!e.target.closest("button,input")) W.focus(); });
+
+tunInit(); fit(); render(); loadLive(); setInterval(() => { if (LIVE && !busy) loadLive(); }, 20000);
+document.fonts && document.fonts.ready.then(() => { fit(); });
+addEventListener("resize", fit);
+</script>
