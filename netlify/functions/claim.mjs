@@ -30,16 +30,14 @@ export default async req => {
     if (mk?.items?.some(c => c.word === w)) return json({ error: `"${w}" is already a coin on Solana` }, 409);
 
     /* 2. reserve */
-    const rec = { word: w, wallet, status: "pending", at: Date.now() };
-    const first = await store.setJSON(key, rec, { onlyIfNew: true });
-    if (!first.modified) {
-      const cur = await store.getWithMetadata(key, { type: "json" });
-      const d = cur?.data;
-      if (d && d.status === "live") return json({ error: `"${w}" is already taken` }, 409);
-      if (d && !expired(d) && d.wallet !== wallet) return json({ error: `Someone is claiming "${w}" right now` }, 409);
-      const again = cur ? await store.setJSON(key, rec, { onlyIfMatch: cur.etag }) : await store.setJSON(key, rec, { onlyIfNew: true });
-      if (!again.modified) return json({ error: `"${w}" was just claimed by someone else` }, 409);
-    }
+    const rec = { word: w, wallet, status: "pending", at: Date.now(), n: Math.random().toString(36).slice(2) };
+    const cur = await store.get(key, { type: "json" });
+    if (cur && cur.status === "live") return json({ error: `"${w}" is already taken` }, 409);
+    if (cur && !expired(cur) && cur.wallet !== wallet) return json({ error: `Someone is claiming "${w}" right now` }, 409);
+    await store.setJSON(key, rec);
+    /* read back: if two people hit at the same moment, only the last write wins and the other gets told */
+    const chk = await store.get(key, { type: "json" });
+    if (!chk || chk.n !== rec.n) return json({ error: `"${w}" was just claimed by someone else` }, 409);
     const release = async () => { try { const cur = await store.get(key, { type: "json" }); if (cur && cur.status !== "live" && cur.wallet === wallet) await store.delete(key); } catch {} };
 
     try {
